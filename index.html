@@ -21,6 +21,9 @@ th, td {
   font-size: 14px;
 }
 
+.category-row.expanded {
+  background-color: #eee;
+}
 .category-row:hover {
   background-color: #eee;
 }
@@ -30,7 +33,7 @@ th, td {
 }
 
 .product-name {
-  cursor: default;
+  cursor: pointer;
 }
 .category-products-main {
   padding: 0;
@@ -45,12 +48,57 @@ th, td {
   display: none;
 }
 
+
+#product-details {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+#product-details-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+#product-details-close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+#product-details-close:hover,
+#product-details-close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
 
 <div id="products-list">
 </div>
+<div id="product-details">
+</div>
+
+<script id="product-details-template" type="text/x-handlebars-template">
+  <div id="product-details-content">
+    <span id="product-details-close">&times;</span>
+    <h3>{{this.name}}</h3>
+    <div>{{this.description}}</div>
+    <div>More info coming soon...</div>
+  </div>
+</script>
+
 
 <script id="products-list-template" type="text/x-handlebars-template">
   <table style="width: 100%">
@@ -81,7 +129,7 @@ th, td {
           <table>
             {{#each this.anz.products}}
               <tr>
-                <td class="product-name" title="{{this.description}}">{{this.name}}</td>
+                <td class="product-name" data-bank-id="anz" data-product-id="{{this.productId}}" title="{{this.description}}">{{this.name}}</td>
               </tr>
             {{/each}}
           </table>
@@ -90,7 +138,7 @@ th, td {
           <table>
             {{#each this.nab.products}}
               <tr>
-                <td class="product-name" title="{{this.description}}">{{this.name}}</td>
+                <td class="product-name" data-bank-id="nab" data-product-id="{{this.productId}}" title="{{this.description}}">{{this.name}}</td>
               </tr>
             {{/each}}
           </table>
@@ -99,7 +147,7 @@ th, td {
           <table>
             {{#each this.wes.products}}
               <tr>
-                <td class="product-name" title="{{this.description}}">{{this.name}}</td>
+                <td class="product-name" data-bank-id="wes" data-product-id="{{this.productId}}" title="{{this.description}}">{{this.name}}</td>
               </tr>
             {{/each}}
           </table>
@@ -108,7 +156,7 @@ th, td {
           <table>
             {{#each this.com.products}}
               <tr>
-                <td class="product-name" title="{{this.description}}">{{this.name}}</td>
+                <td class="product-name" data-bank-id="com" data-product-id="{{this.productId}}" title="{{this.description}}">{{this.name}}</td>
               </tr>
             {{/each}}
           </table>
@@ -168,11 +216,16 @@ const productCategories = {
 }
 
 
-async function getProducts(bank, category) {
-  let apiUrl = `${BANKS[bank].host}/cds-au/v1/banking/products?page-size=999`
+async function getProducts(bankId, category) {
+  let apiUrl = `${BANKS[bankId].host}/cds-au/v1/banking/products?page-size=999`
   if (category) apiUrl = `${apiUrl}&product-category=${category}`
   let products = await fetch(`https://cors-anywhere.herokuapp.com/${apiUrl}`, commonOpts).then(resp => resp.json())
   return products
+}
+async function getProductDetails(bankId, productId) {
+  let apiUrl = `${BANKS[bankId].host}/cds-au/v1/banking/products/${productId}`
+  let productDetails = await fetch(`https://cors-anywhere.herokuapp.com/${apiUrl}`, commonOpts).then(resp => resp.json())
+  return productDetails
 }
 
 function processProducts(bankCode, productsRes) {
@@ -203,8 +256,10 @@ function processProducts(bankCode, productsRes) {
 }
 
 window.onload = async function () {
-  let template = Handlebars.compile(document.getElementById('products-list-template').innerHTML)
-  document.getElementById('products-list').innerHTML = template({})
+  let productListTpl = Handlebars.compile(document.getElementById('products-list-template').innerHTML)
+  document.getElementById('products-list').innerHTML = productListTpl({})
+
+  let productDetailsTpl = Handlebars.compile(document.getElementById('product-details-template').innerHTML)
 
 
   let list = await Promise.all([
@@ -221,9 +276,9 @@ window.onload = async function () {
     com: processProducts('com', list[3]),
   }
 
-  let templateData = { productCategories, banks }
-  console.log(templateData)
-  document.getElementById('products-list').innerHTML = template(templateData)
+  let productListData = { productCategories, banks }
+  console.log(productListData)
+  document.getElementById('products-list').innerHTML = productListTpl(productListData)
 
   let $catRows = document.querySelectorAll('.category-row')
   for (let $catRow of $catRows) {
@@ -233,6 +288,28 @@ window.onload = async function () {
       let $catProdsEl = document.querySelector(`#products-${catId}`)
       $catRow.classList.toggle('expanded')
       $catProdsEl.classList.toggle('hidden')
+    })
+  }
+
+
+  let $prodNames = document.querySelectorAll('.product-name')
+  for (let $prodName of $prodNames) {
+    // clicking on product name will show product details
+    $prodName.addEventListener('click', async function (e) {
+      let { bankId, productId } = e.target.dataset
+
+      document.getElementById('product-details').innerHTML = '<div id="product-details-content">Fetching product details...</div>'
+      document.getElementById('product-details').style.display = 'block'
+
+      let productDetails = await getProductDetails(bankId, productId)
+      console.log(productDetails)
+
+      document.getElementById('product-details').innerHTML = productDetailsTpl(productDetails.data)
+
+      document.getElementById('product-details-close').addEventListener('click', function (e) {
+        document.getElementById('product-details').style.display = 'none'
+        document.getElementById('product-details').innerHTML = ''
+      })
     })
   }
 }
