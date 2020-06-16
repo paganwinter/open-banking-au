@@ -14,13 +14,37 @@ th {
   background: #eee;
 }
 th, td {
-  border-bottom: 1px solid #ddd;
+  border: 1px solid #ddd;
   padding: 8px;
   /* text-align: center; */
+  vertical-align: top;
+  font-size: 14px;
 }
+
+.category-row:hover {
+  background-color: #eee;
+}
+.category-title {
+  cursor: pointer;
+  width: 200px;
+}
+
 .product-name {
   cursor: default;
 }
+.category-products-main {
+  padding: 0;
+}
+.category-products-main table {
+  width: 100%;
+}
+.category-products-main table td {
+  border: 0;
+}
+.category-products-list.hidden {
+  display: none;
+}
+
 </style>
 </head>
 <body>
@@ -29,7 +53,7 @@ th, td {
 </div>
 
 <script id="products-list-template" type="text/x-handlebars-template">
-  <table>
+  <table style="width: 100%">
     <tr>
       <th>Banks</th>
       <th>ANZ</th>
@@ -44,15 +68,16 @@ th, td {
       {{/each}}
     </tr>
     {{#each this.productCategories}}
-      <tr>
-        <td>{{this.name}}</td>
+      <tr class="category-row" data-cat-id="{{@key}}">
+        <td class="category-title">{{this.name}}</td>
         <td>{{this.anz.count}}</td>
         <td>{{this.nab.count}}</td>
         <td>{{this.wes.count}}</td>
         <td>{{this.com.count}}</td>
       </tr>
-      <tr>
-        <td>
+      <tr class="category-products-list hidden" id="products-{{@key}}">
+        <td></td>
+        <td class="category-products-main">
           <table>
             {{#each this.anz.products}}
               <tr>
@@ -61,27 +86,27 @@ th, td {
             {{/each}}
           </table>
         </td>
-        <td>
+        <td class="category-products-main">
           <table>
-            {{#each this.anz.products}}
+            {{#each this.nab.products}}
               <tr>
                 <td class="product-name" title="{{this.description}}">{{this.name}}</td>
               </tr>
             {{/each}}
           </table>
         </td>
-        <td>
+        <td class="category-products-main">
           <table>
-            {{#each this.anz.products}}
+            {{#each this.wes.products}}
               <tr>
                 <td class="product-name" title="{{this.description}}">{{this.name}}</td>
               </tr>
             {{/each}}
           </table>
         </td>
-        <td>
+        <td class="category-products-main">
           <table>
-            {{#each this.anz.products}}
+            {{#each this.com.products}}
               <tr>
                 <td class="product-name" title="{{this.description}}">{{this.name}}</td>
               </tr>
@@ -199,6 +224,17 @@ window.onload = async function () {
   let templateData = { productCategories, banks }
   console.log(templateData)
   document.getElementById('products-list').innerHTML = template(templateData)
+
+  let $catRows = document.querySelectorAll('.category-row')
+  for (let $catRow of $catRows) {
+    // clicking on category row will show all products of that category
+    $catRow.addEventListener('click', function (e) {
+      let { catId } = e.target.parentNode.dataset
+      let $catProdsEl = document.querySelector(`#products-${catId}`)
+      $catRow.classList.toggle('expanded')
+      $catProdsEl.classList.toggle('hidden')
+    })
+  }
 }
 </script>
 
