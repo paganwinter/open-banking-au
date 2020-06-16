@@ -85,6 +85,12 @@ th, td {
 </head>
 <body>
 
+<h2>AU Open Banking Products Comparison</h2>
+<p>
+Click on a product category to show products offered by each bank.<br />
+Click on a product title to show details of the product.<br />
+</p>
+
 <div id="products-list">
 </div>
 <div id="product-details">
@@ -95,6 +101,73 @@ th, td {
     <span id="product-details-close">&times;</span>
     <h3>{{this.name}}</h3>
     <div>{{this.description}}</div>
+
+    {{#if this.features}}
+    <h4>Features</h4>
+    <table>
+      <tr>
+        <th>Description</th>
+        <th>Type</th>
+      </tr>
+      {{#each this.features}}
+        <tr>
+          <td><a href="{{this.additionalInfoUri}}">{{this.additionalInfo}}</a></td>
+          <td>{{this.featureType}}</td>
+        </tr>
+      {{/each}}
+    </table>
+    {{/if}}
+
+    {{#if this.fees}}
+    <h4>Fees</h4>
+    <table>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Amount</th>
+      </tr>
+      {{#each this.fees}}
+        <tr>
+          <td><a href="{{this.additionalInfoUri}}">{{this.name}}</a></td>
+          <td>{{this.feeType}}</td>
+          <td>{{this.amount}}</td>
+        </tr>
+      {{/each}}
+    </table>
+    {{/if}}
+
+    {{#if this.depositRates}}
+    <h4>Deposit Rates</h4>
+    <table>
+      <tr>
+        <th>Type</th>
+        <th>Rate</th>
+      </tr>
+      {{#each this.depositRates}}
+        <tr>
+          <td title="{{this.additionalInfo}}. {{this.additionalValue}}"><a href="{{this.additionalInfoUri}}">{{this.depositRateType}}</a></td>
+          <td>{{this.rate}}</td>
+        </tr>
+      {{/each}}
+    </table>
+    {{/if}}
+
+    {{#if this.lendingRates}}
+    <h4>Lending Rates</h4>
+    <table>
+      <tr>
+        <th>Type</th>
+        <th>Rate</th>
+      </tr>
+      {{#each this.lendingRates}}
+        <tr>
+          <td title="{{this.additionalInfo}}. {{this.additionalValue}}"><a href="{{this.additionalInfoUri}}">{{this.lendingRateType}}</a></td>
+          <td>{{this.rate}}</td>
+        </tr>
+      {{/each}}
+    </table>
+    {{/if}}
+
     <div>More info coming soon...</div>
   </div>
 </script>
