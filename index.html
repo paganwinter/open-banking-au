@@ -102,6 +102,13 @@ Click on a product title to show details of the product.<br />
     <h3>{{this.name}}</h3>
     <div>{{this.description}}</div>
 
+    {{#if this.overviewUri}}
+      <span><a href="{{this.overviewUri}}">Overview</a></span>
+    {{/if}}
+    {{#if this.applicationUri}}
+      <span><a href="{{this.applicationUri}}">Apply</a></span>
+    {{/if}}
+
     {{#if this.features}}
     <h4>Features</h4>
     <table>
@@ -168,7 +175,7 @@ Click on a product title to show details of the product.<br />
     </table>
     {{/if}}
 
-    <div>More info coming soon...</div>
+    <p>More info coming soon...</p>
   </div>
 </script>
 
