@@ -1,0 +1,233 @@
+<html>
+<head>
+<title>Open Banking Status and Outages</title>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<style>
+body {
+  font-family: Arial;
+}
+table {
+  border-collapse: collapse;
+}
+
+th {
+  background: #eee;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  /* text-align: center; */
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.bank-name {
+  color: #ccc;
+}
+.bank-name.loaded-success {
+  color: #0b2;
+}
+.bank-name.loaded-error {
+  color: #d04;
+}
+.status-OK {
+  padding: 5px;
+  margin: 5px;
+  font-weight: bold;
+  border-radius: 3px;
+  color: #fff;
+  background: #0d4;
+}
+</style>
+</head>
+<body>
+
+<h2>AU Open Banking API Status and Planned Outages</h2>
+<p>
+</p>
+
+<div id="banks-list">
+</div>
+
+
+<script id="banks-list-template" type="text/x-handlebars-template">
+  <table>
+    <tr>
+      <th>Banks</th>
+      <th class="bank-name loaded-{{this.banks.anz.loaded}}">ANZ</th>
+      <th class="bank-name loaded-{{this.banks.nab.loaded}}">NAB</th>
+      <th class="bank-name loaded-{{this.banks.wes.loaded}}">Westpac</th>
+      <th class="bank-name loaded-{{this.banks.com.loaded}}">Comm Bank</th>
+    </tr>
+    <tr>
+      <td></td>
+      {{#each this.banks}}
+        <td>{{this.error}}</td>
+      {{/each}}
+    </tr>
+    <tr>
+      <td>Status</td>
+      {{#each this.banks}}
+        <td>
+          {{#if this.status}}
+            <div><span class="status-{{this.status.status}}">{{this.status.status}}</span></div><br />
+            <div>Last updated at {{this.status.updateTime}}</div>
+            {{#if this.statusNotOk}}
+              <div>Explanation: {{this.status.explanation}}</div>
+              <div>Detected at {{this.status.detectionTime}}</div>
+              <div>Expected to be resolved at {{this.status.expectedResolutionTime}}</div>
+            {{/if}}
+          {{/if}}
+        </td>
+      {{/each}}
+    </tr>
+    <tr>
+      <td>Outages</td>
+      {{#each this.banks}}
+        <td>
+          {{#if this.outages}}
+            {{#each this.outages}}
+                <div>Outage Time: {{this.outageTime}}</div>
+                <div>Duration: {{this.duration}}</div>
+                <div>{{#if this.isPartial}}Partial{{/if}}</div>
+                <div>Explanation: {{this.explanation}}</div>
+            {{/each}}
+          {{else}}
+            <div>None</div>
+          {{/if}}
+          </td>
+      {{/each}}
+    </tr>
+</table>
+</script>
+
+<script>
+const commonOpts = {
+  headers: { 'x-v': 1 },
+  // origin: 'http://example.com',
+}
+const BANKS = {
+  anz: { name: 'ANZ', host: 'https://api.anz' },
+  nab: { name: 'NAB', host: 'https://openbank.api.nab.com.au' },
+  wes: { name: 'Westpac', host: 'https://digital-api.westpac.com.au' },
+  com: { name: 'Comm Bank', host: 'https://api.commbank.com.au/public' },
+}
+
+async function http(opts) {
+  let { url, method, headers, query, body } = opts
+
+  try {
+    let result = await fetch(url, { method, headers, body: JSON.stringify(body) })
+    console.log(result.status, method, url)
+
+    let resBody
+    try {
+      resBody = await result.json()
+    } catch (err) {
+    }
+    return {
+      status: result.status,
+      headers: result.headers,
+      body: resBody,
+    }
+  } catch (error) {
+    return { error }
+  }
+}
+
+async function getStatus(bankId) {
+  let apiUrl = `${BANKS[bankId].host}/cds-au/v1/discovery/status`
+
+  let { error, status, body } = await http({
+    url: `https://cors-anywhere.herokuapp.com/${apiUrl}`,
+    method: 'get',
+    headers: commonOpts.headers,
+  })
+  if (error) {
+    console.error(error)
+    throw error
+  }
+  if (status !== 200) {
+    console.error(status, body)
+    throw new Error('Received status ' + status)
+  }
+
+  console.log(body.data)
+  body.data.statusNotOk = (body.data.status !== 'OK')
+  return body.data
+}
+async function getOutages(bankId) {
+  let apiUrl = `${BANKS[bankId].host}/cds-au/v1/discovery/outages`
+
+  let { error, status, body } = await http({
+    url: `https://cors-anywhere.herokuapp.com/${apiUrl}`,
+    method: 'get',
+    headers: commonOpts.headers,
+  })
+  if (error) {
+    console.error(error)
+    throw error
+  }
+  if (status !== 200) {
+    console.error(status, body)
+    throw new Error('Received status ' + status)
+  }
+  console.log(body.data)
+  return (body.data.outages.length) ? body.data.outages : null
+}
+
+
+window.onload = async function () {
+  let banksListTpl = Handlebars.compile(document.getElementById('banks-list-template').innerHTML)
+  document.getElementById('banks-list').innerHTML = banksListTpl({})
+
+  let banks = {
+    anz: {
+      status: null,
+      outages: null,
+    },
+    nab: {
+      status: null,
+      outages: null,
+    },
+    wes: {
+      status: null,
+      outages: null,
+    },
+    com: {
+      status: null,
+      outages: null,
+    },
+  }
+
+  function updateTable() {
+    document.getElementById('banks-list').innerHTML = banksListTpl({ banks })
+  }
+
+  for (let bankId in banks) {
+    getStatus(bankId)
+      .then((data) => {
+        banks[bankId].loaded = 'success'
+        banks[bankId].status = data
+        updateTable()
+      })
+      .catch(error => {
+        banks[bankId].loaded = 'error'
+        banks[bankId].error = error
+      })
+    getOutages(bankId)
+      .then((data) => {
+        banks[bankId].loaded = 'success'
+        banks[bankId].outages = data
+        updateTable()
+      })
+      .catch(error => {
+        banks[bankId].loaded = 'error'
+        banks[bankId].error = error
+      })
+  }
+}
+</script>
+
+</body>
+</html>
