@@ -71,7 +71,7 @@ th, td {
         <td>
           {{#if this.status}}
             <div><span class="status-{{this.status.status}}">{{this.status.status}}</span></div><br />
-            <div>Last updated at {{this.status.updateTime}}</div>
+            <div>Last updated on {{this.status.updateTimeStr}}</div>
             {{#if this.statusNotOk}}
               <div>Explanation: {{this.status.explanation}}</div>
               <div>Detected at {{this.status.detectionTime}}</div>
@@ -151,10 +151,13 @@ async function getStatus(bankId) {
     console.error(status, body)
     throw new Error('Received status ' + status)
   }
+  let statusRes = body.data
+  statusRes.statusNotOk = (statusRes.status !== 'OK')
 
-  console.log(body.data)
-  body.data.statusNotOk = (body.data.status !== 'OK')
-  return body.data
+  let updateTime = new Date(statusRes.updateTime)
+  statusRes.updateTimeStr = updateTime.toDateString().substr(4) + ', ' + statusRes.updateTime.substr(11)
+  console.log(statusRes)
+  return statusRes
 }
 async function getOutages(bankId) {
   let apiUrl = `${BANKS[bankId].host}/cds-au/v1/discovery/outages`
