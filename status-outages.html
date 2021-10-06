@@ -139,7 +139,8 @@ async function getStatus(bankId) {
   let apiUrl = `${BANKS[bankId].host}/cds-au/v1/discovery/status`
 
   let { error, status, body } = await http({
-    url: `https://cors-anywhere.herokuapp.com/${apiUrl}`,
+    // url: `https://cors-anywhere.herokuapp.com/${apiUrl}`,
+    url: apiUrl,
     method: 'get',
     headers: commonOpts.headers,
   })
