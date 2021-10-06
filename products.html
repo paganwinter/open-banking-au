@@ -249,7 +249,7 @@ th, td {
 
 <script>
 const commonOpts = {
-  headers: { 'x-v': 1 },
+  headers: { 'x-v': 3 },
   // origin: 'http://example.com',
 }
 const BANKS = {
@@ -303,7 +303,7 @@ async function getProducts(bankId, category) {
   if (category) apiUrl = `${apiUrl}&product-category=${category}`
   try {
     // let products = await fetch(`${apiUrl}`, commonOpts).then(resp => resp.json())
-    let products = await fetch(`https://cors-anywhere.herokuapp.com/${apiUrl}`, commonOpts).then(resp => resp.json())
+    let products = await fetch(apiUrl, commonOpts).then(resp => resp.json())
     console.log(products)
     return products
   } catch (err) {
