@@ -313,7 +313,7 @@ async function getProducts(bankId, category) {
 }
 async function getProductDetails(bankId, productId) {
   let apiUrl = `${BANKS[bankId].host}/cds-au/v1/banking/products/${productId}`
-  let productDetails = await fetch(`https://cors-anywhere.herokuapp.com/${apiUrl}`, commonOpts).then(resp => resp.json())
+  let productDetails = await fetch(apiUrl, commonOpts).then(resp => resp.json())
   return productDetails
 }
 
