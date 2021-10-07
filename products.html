@@ -117,7 +117,9 @@ window.onload = async function () {
     BANKS[id].id = id
     for (let prodCat in PRODUCTS) {
       PRODUCTS[prodCat].banks = PRODUCTS[prodCat].banks || {}
-      PRODUCTS[prodCat].banks[id] = {}
+      PRODUCTS[prodCat].banks[id] = {
+        bankId: id,
+      }
     }
 
     const { count, products } = await getProducts(bank)
@@ -127,7 +129,8 @@ window.onload = async function () {
     // add banks product count and list to PRODUCTS
     const byCategory = processProducts(products)
     for (let prodCat in PRODUCTS) {
-      PRODUCTS[prodCat].banks[bank.id] = byCategory[prodCat]
+      PRODUCTS[prodCat].banks[bank.id].count = byCategory[prodCat].count
+      PRODUCTS[prodCat].banks[bank.id].products = byCategory[prodCat].products
     }
 
     $productsList.innerHTML = productListTpl({ BANKS, PRODUCTS })
@@ -155,8 +158,12 @@ window.onload = async function () {
     $prodName.addEventListener('click', async function (e) {
       let { bankId, productId } = e.target.dataset
 
-      document.getElementById('product-details').innerHTML = '<div id="product-details-content">Fetching product details...</div>'
+      document.getElementById('product-details').innerHTML = '<div id="product-details-content">Fetching product details...<span id="product-details-close">&times;</span></div>'
       document.getElementById('product-details').style.display = 'block'
+      document.getElementById('product-details-close').addEventListener('click', function (e) {
+        document.getElementById('product-details').style.display = 'none'
+        document.getElementById('product-details').innerHTML = ''
+      })
 
       let productDetails = await getProductDetails(BANKS[bankId], productId)
       console.log(productDetails)
@@ -298,7 +305,7 @@ window.onload = async function () {
             <table>
               {{#each this.products}}
                 <tr>
-                  <td class="product-name" data-bank-id="anz" data-product-id="{{this.productId}}" title="{{this.description}}">{{this.name}}</td>
+                  <td class="product-name" data-bank-id="{{../bankId}}" data-product-id="{{this.productId}}" title="{{this.description}}">{{this.name}}</td>
                 </tr>
               {{/each}}
             </table>
@@ -373,7 +380,7 @@ window.onload = async function () {
   
   #product-details-content {
     background-color: #fefefe;
-    margin: 15% auto; /* 15% from the top and centered */
+    margin: 50px auto; /* 15% from the top and centered */
     padding: 20px;
     border: 1px solid #888;
     width: 80%; /* Could be more or less, depending on screen size */
